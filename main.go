@@ -68,6 +68,30 @@ func main() {
 	if err := c.register("register", handlerRegister); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	if err := c.register("reset", handlerReset); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("users", handlerGetUsers); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("agg", handlerAggregate); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("addfeed", middlewareLoggedIn(handlerCreateFeed)); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("feeds", handlerGetFeeds); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("follow", middlewareLoggedIn(handlerCreateFeedFollow)); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("following", middlewareLoggedIn(handlerGetFeedFollowsForUser)); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("unfollow", middlewareLoggedIn(handlerUnFollow)); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
 	args := os.Args
 	if len(args) < 2 {
 		log.Fatal("Usage: cli <command> [args...]")
@@ -89,7 +113,7 @@ func handlerLogin(s *state, cmd command) error {
 	uname := cmd.args[0]
 	ctx := context.Background()
 	if _, err := s.db.GetUser(ctx, uname); errors.Is(err, sql.ErrNoRows) {
-		fmt.Printf("User %v does note exist\n", uname)
+		fmt.Printf("User %v does not exist\n", uname)
 		os.Exit(1)
 	} else if err != nil {
 		return fmt.Errorf("database error: %v", err)
@@ -130,4 +154,50 @@ func handlerRegister(s *state, cmd command) error {
 	log.Printf("%+v\n", user)
 
 	return nil
+}
+
+func handlerGetUsers(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return fmt.Errorf("incorrect arguments, usage: gator users")
+	}
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("database error: %v", err)
+	}
+	if len(users) < 1 {
+		fmt.Printf("no users: %v\n", users)
+		return nil
+	}
+	for _, u := range users {
+		fmt.Printf("* %s%s\n", u, func() string {
+			if u == s.cfg.CurrentUserName {
+				return " (current)"
+			}
+			return ""
+		}())
+	}
+
+	return nil
+}
+
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return fmt.Errorf("incorrect arguments, usage: gator reset")
+	}
+	if err := s.db.DeleteAllUsers(context.Background()); err != nil {
+		return fmt.Errorf("database error: %v", err)
+	}
+	fmt.Println("Database reset successful.")
+	return nil
+}
+
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+		if err != nil {
+			return err
+		}
+		err = handler(s, cmd, user)
+		return err
+	}
 }
