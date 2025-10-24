@@ -53,10 +53,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Config error: %v", err)
 	}
+
 	db, err := sql.Open("postgres", cfg.DbUrl)
 	if err != nil {
 		log.Fatalf("Database error: %v\n", err)
 	}
+
 	dbQueries := database.New(db)
 	ps := state{cfg: &cfg, db: dbQueries}
 
@@ -65,6 +67,7 @@ func main() {
 	if err := c.register("login", handlerLogin); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+
 	if err := c.register("register", handlerRegister); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
@@ -90,6 +93,9 @@ func main() {
 		log.Fatalf("error: %v\n", err)
 	}
 	if err := c.register("unfollow", middlewareLoggedIn(handlerUnFollow)); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	if err := c.register("browse", middlewareLoggedIn(handlerBrowse)); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 	args := os.Args

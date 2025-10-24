@@ -4,25 +4,11 @@ import (
 	"boot_dev/boot_blog/internal/database"
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-func handlerAggregate(s *state, cmd command) error {
-	if len(cmd.args) > 0 {
-		return fmt.Errorf("incorrect arguments, usage: gator agg")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	feed, err := fetchFeed(ctx, "http://wagslane.dev/index.xml")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%+v\n", feed)
-	return nil
-}
 
 func handlerCreateFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 {
@@ -108,7 +94,7 @@ func handlerCreateFeedFollow(s *state, cmd command, user database.User) error {
 
 func handlerGetFeedFollowsForUser(s *state, cmd command, user database.User) error {
 	if len(cmd.args) > 0 {
-		return fmt.Errorf("incorrect arguments, usage: gator follow")
+		return fmt.Errorf("incorrect arguments, usage: gator following")
 	}
 	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
@@ -136,5 +122,28 @@ func handlerUnFollow(s *state, cmd command, user database.User) error {
 	}
 	fmt.Println("Unfollowed successfully:")
 
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	if len(cmd.args) > 1 {
+		return fmt.Errorf("incorrect arguments: gator browse <limit>")
+	}
+	limit := int32(2)
+	if len(cmd.args) >= 1 {
+		if n64, err := strconv.ParseInt(cmd.args[0], 10, 32); err == nil {
+			limit = int32(n64)
+		}
+	}
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	})
+	if err != nil {
+		return fmt.Errorf("database error: %v", err)
+	}
+	for _, post := range posts {
+		fmt.Printf("Feed: %s | Title: %s| Description: %s\n", post.Name, post.Title.String, post.Description.String)
+	}
 	return nil
 }
