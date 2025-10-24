@@ -14,7 +14,7 @@ import (
 
 func handlerAggregate(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
-		return fmt.Errorf("incorrect arguments, usage: gator agg <timeduration>")
+		return fmt.Errorf("usage: gator agg <timeduration>")
 	}
 	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {

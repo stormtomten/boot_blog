@@ -114,18 +114,18 @@ func main() {
 
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
-		return fmt.Errorf("incorrect arguments, usage: gator login <username>")
+		return fmt.Errorf("usage: gator login <username>")
 	}
 	uname := cmd.args[0]
 	ctx := context.Background()
-	if _, err := s.db.GetUser(ctx, uname); errors.Is(err, sql.ErrNoRows) {
-		fmt.Printf("User %v does not exist\n", uname)
-		os.Exit(1)
-	} else if err != nil {
+	if _, err := s.db.GetUser(ctx, uname); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("user %s does not exist", uname)
+		}
 		return fmt.Errorf("database error: %v", err)
 	}
 	if err := s.cfg.SetUser(uname); err != nil {
-		return fmt.Errorf("error setting user: %v", err)
+		return fmt.Errorf("failed to set user in config: %v", err)
 	}
 	fmt.Printf("User set to %s\n", uname)
 	return nil
@@ -133,7 +133,7 @@ func handlerLogin(s *state, cmd command) error {
 
 func handlerRegister(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
-		return fmt.Errorf("incorrect arguments, usage: gator register <username>")
+		return fmt.Errorf("usage: gator register <username>")
 	}
 	uname := cmd.args[0]
 	ctx := context.Background()
@@ -142,9 +142,9 @@ func handlerRegister(s *state, cmd command) error {
 		return fmt.Errorf("database error: %v", err)
 	}
 	if err == nil {
-		fmt.Printf("user exists %v\n", uname)
+		return fmt.Errorf("user %s already exists", uname)
 	}
-	user, err := s.db.CreateUser(ctx, database.CreateUserParams{
+	_, err = s.db.CreateUser(ctx, database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -156,15 +156,14 @@ func handlerRegister(s *state, cmd command) error {
 	if err := s.cfg.SetUser(uname); err != nil {
 		return fmt.Errorf("failed to set user in config: %v", err)
 	}
-	fmt.Printf("User: %v created\n", uname)
-	log.Printf("%+v\n", user)
+	fmt.Printf("User %s created successfully\n", uname)
 
 	return nil
 }
 
 func handlerGetUsers(s *state, cmd command) error {
 	if len(cmd.args) > 0 {
-		return fmt.Errorf("incorrect arguments, usage: gator users")
+		return fmt.Errorf("usage: gator users")
 	}
 	users, err := s.db.GetUsers(context.Background())
 	if err != nil {
@@ -188,7 +187,7 @@ func handlerGetUsers(s *state, cmd command) error {
 
 func handlerReset(s *state, cmd command) error {
 	if len(cmd.args) > 0 {
-		return fmt.Errorf("incorrect arguments, usage: gator reset")
+		return fmt.Errorf("usage: gator reset")
 	}
 	if err := s.db.DeleteAllUsers(context.Background()); err != nil {
 		return fmt.Errorf("database error: %v", err)

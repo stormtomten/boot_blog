@@ -12,7 +12,7 @@ import (
 
 func handlerCreateFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 {
-		return fmt.Errorf("incorrect arguments, usage: gator addfeed <name> <url>")
+		return fmt.Errorf("usage: gator addfeed <name> <url>")
 	}
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
@@ -51,7 +51,7 @@ func printFeed(feed database.Feed) {
 
 func handlerGetFeeds(s *state, cmd command) error {
 	if len(cmd.args) > 0 {
-		return fmt.Errorf("incorrect arguments, usage: gator feeds")
+		return fmt.Errorf("usage: gator feeds")
 	}
 	feeds, err := s.db.GetFeeds(context.Background())
 	if err != nil {
@@ -69,7 +69,7 @@ func handlerGetFeeds(s *state, cmd command) error {
 
 func handlerCreateFeedFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
-		return fmt.Errorf("incorrect arguments, usage: gator follow <url>")
+		return fmt.Errorf("usage: gator follow <url>")
 	}
 	feed, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
@@ -94,7 +94,7 @@ func handlerCreateFeedFollow(s *state, cmd command, user database.User) error {
 
 func handlerGetFeedFollowsForUser(s *state, cmd command, user database.User) error {
 	if len(cmd.args) > 0 {
-		return fmt.Errorf("incorrect arguments, usage: gator following")
+		return fmt.Errorf("usage: gator following")
 	}
 	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
@@ -111,7 +111,7 @@ func handlerGetFeedFollowsForUser(s *state, cmd command, user database.User) err
 
 func handlerUnFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
-		return fmt.Errorf("incorrect arguments, usage: gator follow <url>")
+		return fmt.Errorf("usage: gator follow <url>")
 	}
 	err := s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
 		Url:    cmd.args[0],
@@ -127,7 +127,7 @@ func handlerUnFollow(s *state, cmd command, user database.User) error {
 
 func handlerBrowse(s *state, cmd command, user database.User) error {
 	if len(cmd.args) > 1 {
-		return fmt.Errorf("incorrect arguments: gator browse <limit>")
+		return fmt.Errorf("usage: gator browse <limit>")
 	}
 	limit := int32(2)
 	if len(cmd.args) >= 1 {
